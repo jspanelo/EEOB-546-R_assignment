@@ -2,6 +2,8 @@
 EEOB546 - R assignment 
 
 Files
+
+
 `R_assignment_juan.Rmd` Main file, in md format
 `script analysis.R`     Simlar to main file, but in R script. I added because I have some issues with Rmd in my laptop, 
                                    so then you can run this one in the case something goes wrong 
@@ -17,6 +19,8 @@ Files
 `snp_position.txt` SNPs positions file
 
 Folders
+
+
 `/Output` output files and plots
 `/.RProj.user` ignore it
 
