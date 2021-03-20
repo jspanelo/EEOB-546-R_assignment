@@ -5,23 +5,38 @@ Files
 
 
 `R_assignment_juan.Rmd` Main file, in md format
+
+
 `script analysis.R`     Simlar to main file, but in R script. I added because I have some issues with Rmd in my laptop, 
                                    so then you can run this one in the case something goes wrong 
 
+
+
 `functions_R_assignment.R` Function used for filtering and dividing files into 40 different files
+
+
 
 `R_assign.Rdata` R workspace. I assume it has all the intermediate files loaded.
 
+
+
 `R_assignment.RProj` Entire R-Project
+
+
 `.Rhistory` to ignore
 
+
 `fang_et_al_genotypes.txt` Genotypes file
+
+
 `snp_position.txt` SNPs positions file
 
 Folders
 
 
 `/Output` output files and plots
+
+
 `/.RProj.user` ignore it
 
 Plots and files are allocated in the output folder
