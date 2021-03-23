@@ -1,0 +1,21 @@
+---
+title: "Bhatia_Review"
+output: html_document
+---
+
+In the summary of snp_pos file, there is an extra pipe at the end which does not follow into anything. You might want to look into that. I have attached the code below. 
+```{r setup}
+snp_pos %>% filter(Position < 10e1000) %>% 
+  group_by(Chromosome = as.numeric(Chromosome)) %>%  
+  summarise(SNPs = n(),
+            First_Pos_Mb = (min(as.double(Position)/1000000)), 
+            Last_Pos_Mb = (max(as.double(Position)/1000000)),
+            Coverage_Mb = Last_Pos_Mb - First_Pos_Mb)
+```
+
+Rest all of the files looked really good. I really liked how you created a loop initially and then printed the following statement. 
+
+"The file fang_et_al_genotypes.txt  is 2783 rows long and 986 columns wide."
+"The file snp_position.txt  is 984 rows long and 15 columns wide."
+
+All of your graphs looked amazing and showed all the details. 
