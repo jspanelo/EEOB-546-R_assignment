@@ -10,12 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
-Load Library and built-in functions
 
 ```{r}
 install.packages("plotly")
+install.packages("htmlwidgets")
 ```
 
+Load Library and built-in functions
 
 ```{r}
 library(tidyverse)
