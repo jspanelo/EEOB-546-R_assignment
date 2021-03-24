@@ -200,7 +200,6 @@ for (i in 1:10) {
 
 ```
 
----------------------
 Plotting
 
 SNPs Counts from snp_pos file. The the filter() is for getting rid of unknown and multiple snps 
