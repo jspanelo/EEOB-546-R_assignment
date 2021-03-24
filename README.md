@@ -34,8 +34,8 @@ Files
 Folders
 
 
-`/Output` output files and plots
-
+`/Output` Output files, txt format
+`/plots` Plots in pdf format or html 
 
 `/.RProj.user` ignore it
 
