@@ -1,3 +1,5 @@
+install.packages("plotly")
+install.packages("htmlwidgets")
 library(tidyverse)
 #Built in functions
 source("functions_R_assignment.R")
@@ -17,8 +19,8 @@ for( i in list.files(pattern = '*.txt')){ # match all text files to iterate thro
 
 ### Loading the files as genotypes ans snp_pos ### 
 
-genotypes <- read_delim("fang_et_al_genotypes.txt", delim = '\t')
 snp_pos <- read_delim("snp_position.txt", delim = '\t')
+head(snp_pos)
 
 # summary for snp_pos
 snp_pos %>% filter(Position < 10e1000) %>% 
@@ -30,31 +32,60 @@ snp_pos %>% filter(Position < 10e1000) %>%
 
 # Some extra information about different factors in snp_pos
 
+str(snp_pos)
+
+Info <- NULL
+
 for (i in 1:ncol(snp_pos)) {
-  print(names(snp_pos)[i])
-  print(length(levels(as.factor(snp_pos[[i]]))))
-}
+  rbind(Info, c(names(snp_pos)[i], 
+        length(levels(as.factor(snp_pos[[i]]))))) -> Info
+  Info %>% as.table()
+  }
 
-levels(as.factor(snp_pos$Chromosome))
-# Digging into Chromosome, multiple and unknown chromosomes needs to be filtered out
+as_tibble(Info) %>% rename(., Feature = "V1", `Counts or Levels` = "V2")
 
-for (i in 1:3) {
-  print(names(genotypes)[i])
-  print(length(levels(as.factor(genotypes[[i]]))))
-}
+# 6 out of 15 variables are numerical (double), 9 out of 15 are characters
 
-# Selecting only groups belonging to teosinte and maize
+# There are 983 SNPs_IDs, 941 Positions (suggesting duplicated SNP_IDs) and 12 Chromosomes listed, which are supposed to be 10, and numerical 
+            
+# Checking levels and counts in Chromosomes by creating a table for chromosomes
+
+as.data.frame(table(snp_pos$Chromosome, deparse.level = 2), 
+              responseName = 'Counts')
+
+# After checking "Chromosome", multiple and unknown chromosomes needs to be filtered out for the analysis
+# There are 10 chromosomes and two sets of unassigned SNPs (multiple and unknown, 33 SNPs)
+# The largest number of SNPs are on chr1 (155), the smallest on chr10 (53)
+
+# Load fang_et_al_genotypes.txt and get some information
+
+genotypes <- read_delim("fang_et_al_genotypes.txt", delim = '\t')
+
+Info_G <- NULL
+
+for (i in 1:ncol(genotypes)) {
+  rbind(Info_G, c(names(genotypes)[i],
+    length(levels(as.factor(genotypes[[i]]))))) -> Info_G
+  Info_G %>% as.table()
+  }
+# Summarizyng the data based on the number of counts of each feature
+as_tibble(Info_G) %>% rename(., Feature = "V1", Counts = "V2")
+
+# Selecting only groups belonging to teosinte and maize, for extracting some data to be used afterwards
+# Counts of sample size and number of SNPs for both teosinte and maize
 
 as_tibble(cbind(c('Teosinte','Maize'), rbind(dim(genotypes[genotypes$Group %in% c('ZMPBA','ZMPIL','ZMPJA'),]), 
                                              dim(genotypes[genotypes$Group %in% c('ZMMIL','ZMMLR','ZMMMR'),])))) %>% 
   rename(Species = 'V1', SNPs = "V3", Samples = "V2")
 
+# The counts are 986 SNPs for both sets, with 975 samples from Teosinte and 1573 from Maize
 
 ## Data Processing
+#Create a directory for future outputs
 dir.create('./output')
+dir.create('./plots')
 
-
-#Filtering teosinte
+#Filtering teosinte's group
 
 genotypes %>% 
   filter(Group %in% c('ZMPBA','ZMPIL','ZMPJA')) %>% 
@@ -67,7 +98,7 @@ names(teosinte) <- teosinte[1,]
 teosinte <- teosinte[-1,]
 teosinte <- rename(teosinte, SNP_ID = "Sample_ID")
 
-#Filtering maize
+#Filtering maize's group
 
 genotypes %>% 
   filter(Group %in% c('ZMMIL','ZMMLR','ZMMMR')) %>% 
@@ -81,16 +112,19 @@ maize <- maize[-1,]
 maize <- rename(maize, SNP_ID = "Sample_ID")
 
 
-# Merge genotypic and SNP data
+# Merging genotypic and SNP data from teosinte
 
 left_join(teosinte, select(snp_pos, c('SNP_ID', 'Chromosome', 'Position')), by = "SNP_ID") %>%
   select(c('SNP_ID', 'Chromosome', 'Position'), everything()) %>% 
   filter(Chromosome %in% c(1:10) & Position < 10e1000) %>% droplevels() -> teosinte
 
+# Merging genotypic and SNP data from maize
+
 left_join(maize, select(snp_pos, c('SNP_ID', 'Chromosome', 'Position')), by = "SNP_ID") %>%
     select(c('SNP_ID', 'Chromosome', 'Position'), everything()) %>% 
     filter(Chromosome %in% c(1:10) & Position < 10e1000) %>% droplevels() -> maize
 
+## Files generation. Created using built-in functions under functions_R_assignment.R
 # Files generation
 
 for (i in 1:10) {
@@ -104,72 +138,82 @@ for (i in 1:10) {
 
 # SNPs Counts #
 
+# SNPs Counts from snp_pos file. The the filter() is for getting rid of unknown and multiple snps 
+
 snp_pos %>% 
   filter(Position < 10e1000) %>% 
   ggplot(aes(as.double(Chromosome))) +
   geom_bar(fill = 'orange', color = 'darkred') + 
-  geom_text(stat = 'count', aes(label = ..count..), vjust = -1) +
+  geom_text(stat = 'count', aes(label = ..count..), vjust = -0.3) +
   scale_x_continuous(breaks = 1:10) +
   theme_replace() +
   ggtitle("SNPs count by Chromosome") +
   ylab('Number of SNPs') +
   xlab('Chromosome') 
-ggsave('./output/SNPs_count.jpg')
+ggsave('./plots/SNPs_count.pdf')
 
-# SNPs distribution #
+# SNPs distribution. Position is divided by 1000000 just for getting numbers in MegaBases
 
 snp_pos %>% filter(Position < 10e1000) %>% 
   ggplot(aes(as.double(Position)/1000000)) +
   geom_histogram(aes(y = ..density..), color = 'orange', fill = "orange", alpha = 0.4, bins = 20) + 
   geom_density(aes(as.double(Position)/1000000), color = "darkred") + 
-  facet_wrap(~ as.double(Chromosome), scales = "free") +
+  facet_wrap(~ as.double(Chromosome), scales = "free_x") +
   theme_replace() +
   ggtitle("SNPs distribution by Chromosome") +
   xlab('Genome position (Mb)') +
   ylab('SNP density')
-ggsave(paste0("./output/SNP_distribution_by_chrom.jpg"))
+ggsave(paste0("./plots/SNP_distribution_by_chrom.pdf"))
 
-### Wrangling data by sample ###
 
+# Homozygotes, Heterozygotes and Missing data by sample
+# I. Wrangling data by sample
 geno_long <- 
 genotypes %>% select(-JG_OTU, -Group) %>%   
   pivot_longer(!Sample_ID) %>% 
   mutate(Locus = ifelse(value %in% c('C/C', 'G/G', 'A/A', 'T/T'), 'Homozygote', ifelse(value == '?/?', 'MD', 'Heterozygote')))  
 
-### Plotting by Sample ###
+### II. Plotting data by sample. Plots generated using plotly (interactive) in order to make easier to visualize individual values
 
-color_plots <- c("#009E73",  "#D55E00", "#999999")
+color_plots <- c("#009E73",  "#D55E00", "#999999") # Colorblind-friendly colors for plots
 
-geno_long %>% group_by(Sample_ID) %>%  count(Locus) %>% 
-  ggplot(aes(fill = Locus, y = n, x = Sample_ID)) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_fill_manual(values = color_plots) +
-  ggtitle("Proportion of Homozygotes, Heterozygotes and Missing Data by Genotype ") +
-  ylab('Proportion') +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank())
-ggsave('./output/Proportions_by_genotype.jpg')
+plotly::ggplotly(
+  geno_long %>% group_by(Sample_ID) %>%  count(Locus) %>% 
+    ggplot(aes(fill = Locus, y = n, x = Sample_ID)) +
+    geom_bar(position = "fill", stat = "identity") +
+    scale_fill_manual(values = color_plots) +
+    ggtitle("Proportion of Homozygotes, Heterozygotes \nand Missing Data by Genotype ") +
+    ylab('Proportion') +
+    theme(axis.title.x=element_blank(),
+         axis.text.x=element_blank(),
+         axis.ticks.x=element_blank())
+) -> P
+  
+setwd('./plots')
+htmlwidgets::saveWidget(P, "Proportions_by_genotype.html")
+setwd('../')
 
-### Wrangling Data by Group ###
+# Homozygotes, Heterozygotes and Missing data by Group
+# I. Wrangling data by group
 
 groups_long <- 
   genotypes %>% select(-JG_OTU, -Sample_ID) %>%   
   pivot_longer(!Group) %>% 
-  mutate(Locus = ifelse(value %in% c('C/C', 'G/G', 'A/A', 'T/T'), 'Homozygote', ifelse(value == '?/?', 'MD', 'Heterozygote')))  
+  mutate(Locus = ifelse(value %in% c('C/C', 'G/G', 'A/A', 'T/T'), 'Homozygote', ifelse(value == '?/?', 'MD', 'Heterozygote'))) 
 
-#### Plot by group ####
+# II. Plotting data by group
   
 groups_long %>% group_by(Group) %>%  count(Locus) %>% 
     ggplot(aes(fill = Locus, y = n, x = Group)) +
     geom_bar(position = "fill", stat = "identity") +
     scale_fill_manual(values = color_plots) +
-    ggtitle("Proportion of Homozygotes, Heterozygotes and Missing Data by Group ") +
-    ylab('Proportion') 
-ggsave('./output/Proportions_by_group.jpg')
+    ggtitle("Proportion of Homozygotes, Heterozygotes and Missing Data \nby Group ") +
+    ylab('Proportion') +
+    theme(axis.text.x = element_text(angle = 90))
+ggsave('./plots/Proportions_by_group.pdf')
 
 
-### Plotting by Sample ###
+### Own plot: Proportion of nucleotides for homozygotic snps for each group ###
 
 color_plots <- c("#009E73", "#999999","#D55E00", "#545454")
 
@@ -179,5 +223,5 @@ groups_long %>% filter(Locus == "Homozygote") %>% group_by(Group) %>%  count(val
   scale_fill_manual(values = color_plots) +
   ggtitle("Proportion of nucleotides for Homozygotic sites in each group") +
   ylab('Proportion') +
-  theme_bw()
-ggsave('./output/own_plot.jpg')
+  theme(axis.text.x = element_text(angle = 90))
+ggsave('./plots/own_plot.pdf')
